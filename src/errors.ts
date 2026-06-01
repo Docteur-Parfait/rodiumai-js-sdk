@@ -21,6 +21,7 @@ export class RodiumAIError extends Error {
     docsUrl?: string | null;
   }) {
     super(message);
+    this.message = message;
     this.name = this.constructor.name;
     this.code = code;
     this.errorCode = errorCode;
