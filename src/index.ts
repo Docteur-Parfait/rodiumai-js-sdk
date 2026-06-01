@@ -1,0 +1,15 @@
+export { RodiumAI } from './client.js';
+export type { RodiumAIOptions } from './client.js';
+export {
+  RodiumAIError,
+  InvalidAPIKeyError,
+  InsufficientRODIError,
+  PermissionDeniedError,
+  ModelNotFoundError,
+  RateLimitError,
+  InternalServerError,
+  ServiceUnavailableError,
+  TimeoutError,
+  NetworkError,
+} from './errors.js';
+export { VERSION } from './_version.js';
