@@ -46,8 +46,8 @@ export class RodiumAI {
     this._logger = new RodiumAILogger(this.logLevel);
     this._usage = new UsageStats();
 
-    if (!this.apiKey.startsWith('rdk-')) {
-      this._logger.logAlert('invalid_api_key_format', 'API key format is invalid. Expected format: rdk-...', {
+    if (!/^[A-Za-z0-9@._-]+$/.test(this.apiKey)) {
+      this._logger.logAlert('invalid_api_key_format', 'API key format is invalid. Expected format: rdk-... or alphanumeric token', {
         sdkVersion: VERSION,
       });
     }

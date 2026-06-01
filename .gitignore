@@ -9,3 +9,9 @@ coverage/
 .idea/
 *.log
 .DS_Store
+package-lock.json
+tests/
+test_reel.mjs
+jest
+tsc
+rodiumai@0.1.0

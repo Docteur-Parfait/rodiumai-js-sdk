@@ -1,12 +1,22 @@
-import fetch, { Response, Headers } from 'node-fetch';
+import fetch, { Response } from 'node-fetch';
 import { VERSION } from './_version.js';
 import {
   NetworkError,
-  RateLimitError,
   RodiumAIError,
   TimeoutError,
   mapHttpStatus,
 } from './errors.js';
+
+function extractBackendError(data: Record<string, unknown>): string | null {
+  const err = data.error;
+  if (err && typeof err === 'object') {
+    return (err as Record<string, unknown>).message as string ?? null;
+  }
+  if (typeof err === 'string') {
+    return err;
+  }
+  return null;
+}
 
 interface RequestOptions {
   method: string;
@@ -118,6 +128,11 @@ export class AsyncHTTPClient {
 
         const error = mapHttpStatus(response.status, respRid);
 
+        const backendMsg = extractBackendError(data);
+        if (backendMsg) {
+          error.message = backendMsg;
+        }
+
         if ([429, 500, 502, 503, 504].includes(response.status)) {
           if (retryCount < this.maxRetries) {
             retryCount++;
@@ -127,7 +142,7 @@ export class AsyncHTTPClient {
           }
         }
 
-        return { status: response.status, data, requestId: respRid };
+        throw error;
       } catch (err) {
         clearTimeout(timer);
         if (err instanceof RodiumAIError) {
@@ -175,22 +190,23 @@ export class AsyncHTTPClient {
         const text = await response.text();
         const data = text ? JSON.parse(text) : {};
         const rid = response.headers.get('X-Request-ID') ?? this.requestId();
-        throw mapHttpStatus(response.status, rid);
+        const error = mapHttpStatus(response.status, rid);
+        const backendMsg = extractBackendError(data);
+        if (backendMsg) {
+          error.message = backendMsg;
+        }
+        throw error;
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) {
+      if (!response.body) {
         throw new NetworkError('No response body for streaming');
       }
 
       const decoder = new TextDecoder();
       let buffer = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
+      for await (const chunk of response.body as AsyncIterable<Buffer>) {
+        buffer += decoder.decode(chunk, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() ?? '';
 

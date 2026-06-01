@@ -88,7 +88,7 @@ export class Completions {
       return this.streamCreate(body, opts.timeout);
     }
 
-    const { status, data } = await this.http.request({
+    const { data } = await this.http.request({
       method: 'POST',
       path: '/chat/completions',
       body,
@@ -129,7 +129,9 @@ export class Completions {
   ): AsyncGenerator<ChatCompletionChunk> {
     const gen = this.http.stream('/chat/completions', body, timeout);
     for await (const chunk of gen) {
-      const choices: ChunkChoice[] = (chunk.choices as any[] ?? []).map((c: any) => ({
+      const rawChoices = (chunk.choices as any[]) ?? [];
+      if (rawChoices.length === 0) continue;
+      const choices: ChunkChoice[] = rawChoices.map((c: any) => ({
         index: c.index ?? 0,
         delta: {
           role: c.delta?.role ?? null,
