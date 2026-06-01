@@ -29,6 +29,17 @@ export class RodiumAIError extends Error {
     this.fixSuggestion = fixSuggestion;
     this.docsUrl = docsUrl;
   }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      message: this.message,
+      code: this.code,
+      errorCode: this.errorCode,
+      requestId: this.requestId,
+      fixSuggestion: this.fixSuggestion,
+      docsUrl: this.docsUrl,
+    };
+  }
 }
 
 export class InvalidAPIKeyError extends RodiumAIError {
