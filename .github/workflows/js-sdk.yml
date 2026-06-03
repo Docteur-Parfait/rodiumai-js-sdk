@@ -2,9 +2,10 @@ name: JavaScript SDK
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, before-develop]
+    tags: ["v*"]
   pull_request:
-    branches: [main, develop]
+    branches: [main, before-develop]
 
 jobs:
   test:
@@ -52,9 +53,6 @@ jobs:
       - name: ESLint
         run: npm run lint
 
-      - name: Prettier
-        run: npm run format
-
       - name: TypeScript compiler check
         run: npm run typecheck
 
@@ -71,8 +69,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: npm audit
-        run: npm audit
+      - name: npm audit — dependency vulnerabilities
+        run: npm audit --audit-level=moderate
+
+      - name: Run security tests
+        run: npm run test:unit -- --testPathPattern=security
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')

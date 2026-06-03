@@ -1,6 +1,5 @@
 import { AsyncHTTPClient } from './_http.js';
 import { VERSION } from './_version.js';
-import { InvalidAPIKeyError } from './errors.js';
 import { RodiumAILogger } from './logger.js';
 import { Audio, Chat, Embeddings, Images, Video } from './resources/index.js';
 import { UsageStats } from './usage.js';
@@ -13,6 +12,8 @@ export interface RodiumAIOptions {
   maxRetries?: number;
   logLevel?: string;
 }
+
+const MAX_RETRIES_LIMIT = 5;
 
 export class RodiumAI {
   public chat: Chat;
@@ -32,16 +33,24 @@ export class RodiumAI {
   private _http: AsyncHTTPClient;
 
   constructor(opts: RodiumAIOptions = {}) {
-    this.apiKey = opts.apiKey ?? (typeof process !== 'undefined' ? process.env.RODIUMAI_API_KEY : '') ?? '';
+    const resolvedKey = opts.apiKey ?? (typeof process !== 'undefined' ? process.env.RODIUMAI_API_KEY : '') ?? '';
+
+    if (!resolvedKey || !resolvedKey.trim()) {
+      throw new Error('API key must not be empty. Provide a valid RodiumAI API key.');
+    }
+
+    // Reject header injection characters
+    if (/[\r\n\x00]/.test(resolvedKey)) {
+      throw new Error('API key contains invalid characters.');
+    }
+
+    this.apiKey = resolvedKey;
     this.baseURL = opts.baseURL ?? 'https://api.rodiumai.io/v1';
     this.timeout = opts.timeout ?? 30_000;
     this.streamTimeout = opts.streamTimeout ?? 600_000;
-    this.maxRetries = opts.maxRetries ?? 3;
+    // Cap maxRetries to prevent DoS-style abuse
+    this.maxRetries = Math.min(opts.maxRetries ?? 3, MAX_RETRIES_LIMIT);
     this.logLevel = opts.logLevel;
-
-    if (!this.apiKey) {
-      throw new InvalidAPIKeyError();
-    }
 
     this._logger = new RodiumAILogger(this.logLevel);
     this._usage = new UsageStats();

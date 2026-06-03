@@ -80,7 +80,10 @@ export class Completions {
       }
       body.temperature = opts.temperature;
     }
-    if (opts.max_tokens !== undefined) body.max_tokens = opts.max_tokens;
+    if (opts.max_tokens !== undefined) {
+      if (opts.max_tokens <= 0) throw new Error('max_tokens must be greater than 0');
+      body.max_tokens = opts.max_tokens;
+    }
     if (opts.top_p !== undefined) body.top_p = opts.top_p;
     if (opts.stop !== undefined) body.stop = opts.stop;
 
