@@ -1,5 +1,6 @@
 import { AsyncHTTPClient } from './_http.js';
 import { VERSION } from './_version.js';
+import { InvalidAPIKeyError } from './errors.js';
 import { RodiumAILogger } from './logger.js';
 import { Audio, Chat, Embeddings, Images, Video } from './resources/index.js';
 import { UsageStats } from './usage.js';
@@ -36,7 +37,7 @@ export class RodiumAI {
     const resolvedKey = opts.apiKey ?? (typeof process !== 'undefined' ? process.env.RODIUMAI_API_KEY : '') ?? '';
 
     if (!resolvedKey || !resolvedKey.trim()) {
-      throw new Error('API key must not be empty. Provide a valid RodiumAI API key.');
+      throw new InvalidAPIKeyError();
     }
 
     // Reject header injection characters
@@ -82,5 +83,15 @@ export class RodiumAI {
 
   get logger(): RodiumAILogger {
     return this._logger;
+  }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      baseURL: this.baseURL,
+      timeout: this.timeout,
+      streamTimeout: this.streamTimeout,
+      maxRetries: this.maxRetries,
+      apiKey: '****',
+    };
   }
 }
