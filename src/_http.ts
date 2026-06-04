@@ -1,3 +1,4 @@
+import { randomUUID as nodeRandomUUID } from 'node:crypto';
 import fetch, { Response } from 'node-fetch';
 import { VERSION } from './_version.js';
 import {
@@ -76,7 +77,9 @@ export class AsyncHTTPClient {
   }
 
   private requestId(): string {
-    return crypto.randomUUID();
+    return typeof globalThis.crypto?.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : nodeRandomUUID();
   }
 
   private async doFetch(

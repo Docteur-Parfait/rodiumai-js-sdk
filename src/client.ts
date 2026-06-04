@@ -14,6 +14,8 @@ export interface RodiumAIOptions {
   logLevel?: string;
 }
 
+const MAX_RETRIES_LIMIT = 5;
+
 export class RodiumAI {
   public chat: Chat;
   public embeddings: Embeddings;
@@ -32,16 +34,24 @@ export class RodiumAI {
   private _http: AsyncHTTPClient;
 
   constructor(opts: RodiumAIOptions = {}) {
-    this.apiKey = opts.apiKey ?? (typeof process !== 'undefined' ? process.env.RODIUMAI_API_KEY : '') ?? '';
+    const resolvedKey = opts.apiKey ?? (typeof process !== 'undefined' ? process.env.RODIUMAI_API_KEY : '') ?? '';
+
+    if (!resolvedKey || !resolvedKey.trim()) {
+      throw new InvalidAPIKeyError();
+    }
+
+    // Reject header injection characters
+    if (/[\r\n\x00]/.test(resolvedKey)) {
+      throw new Error('API key contains invalid characters.');
+    }
+
+    this.apiKey = resolvedKey;
     this.baseURL = opts.baseURL ?? 'https://api.rodiumai.io/v1';
     this.timeout = opts.timeout ?? 30_000;
     this.streamTimeout = opts.streamTimeout ?? 600_000;
-    this.maxRetries = opts.maxRetries ?? 3;
+    // Cap maxRetries to prevent DoS-style abuse
+    this.maxRetries = Math.min(opts.maxRetries ?? 3, MAX_RETRIES_LIMIT);
     this.logLevel = opts.logLevel;
-
-    if (!this.apiKey) {
-      throw new InvalidAPIKeyError();
-    }
 
     this._logger = new RodiumAILogger(this.logLevel);
     this._usage = new UsageStats();
@@ -73,5 +83,15 @@ export class RodiumAI {
 
   get logger(): RodiumAILogger {
     return this._logger;
+  }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      baseURL: this.baseURL,
+      timeout: this.timeout,
+      streamTimeout: this.streamTimeout,
+      maxRetries: this.maxRetries,
+      apiKey: '****',
+    };
   }
 }

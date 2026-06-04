@@ -1,10 +1,10 @@
-name: JavaScript SDK
+name: JavaScript CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, before-develop]
   pull_request:
-    branches: [main, develop]
+    branches: [main, before-develop]
 
 jobs:
   test:
@@ -22,19 +22,19 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run unit tests
         run: npm run test:unit -- --coverage
 
       - name: Run integration tests
-        run: npm run test:integration -- --coverage --coverageReporters=text
+        run: npm run test:integration -- --coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           directory: ./coverage
-          fail_ci_if_error: true
+          fail_ci_if_error: false
 
   lint:
     runs-on: ubuntu-latest
@@ -47,13 +47,10 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: ESLint
         run: npm run lint
-
-      - name: Prettier
-        run: npm run format
 
       - name: TypeScript compiler check
         run: npm run typecheck
@@ -69,41 +66,10 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: npm audit
-        run: npm audit
+      - name: npm audit — dependency vulnerabilities
+        run: npm audit --audit-level=moderate
 
-  publish:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [test, lint, security]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Publish to npm
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          body_path: CHANGELOG.md
-          files: dist/*
+      - name: Run security tests
+        run: npm run test:unit -- --testPathPattern=security

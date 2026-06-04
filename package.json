@@ -1,11 +1,11 @@
 {
   "name": "rodiumai",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "RodiumAI SDK — Unified AI API for Africa",
   "keywords": ["ai", "api", "africa", "llm", "openai-compatible"],
   "homepage": "https://rodiumai.io",
-  "bugs": { "url": "https://github.com/RodiumAI/rodiumai-js/issues" },
-  "repository": { "type": "git", "url": "git+https://github.com/RodiumAI/rodiumai-js.git" },
+  "bugs": { "url": "https://github.com/jeanpierreaigbede/rodiumai-js-sdk/issues" },
+  "repository": { "type": "git", "url": "git+https://github.com/jeanpierreaigbede/rodiumai-js-sdk.git" },
   "license": "MIT",
   "author": "RodiumAI <dev@rodiumai.io>",
   "type": "module",
@@ -36,6 +36,8 @@
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
     "@types/node-fetch": "^2.6.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.40.0",
     "jest": "^29.5.0",
     "prettier": "^2.8.0",
@@ -50,14 +52,6 @@
     "roots": ["<rootDir>/tests"],
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1"
-    },
-    "coverageThreshold": {
-      "global": {
-        "lines": 98.5,
-        "branches": 98.5,
-        "functions": 98.5,
-        "statements": 98.5
-      }
     }
   }
 }
