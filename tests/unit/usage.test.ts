@@ -67,4 +67,11 @@ describe('UsageStats', () => {
     stats.recordRequest({ success: true, model: 'auto', endpoint: '/test', latencyMs: 10 });
     expect(stats.consecutiveErrorCount).toBe(0);
   });
+
+  it('tracks recent error rate', () => {
+    const stats = new UsageStats();
+    stats.recordRequest({ success: false, model: 'auto', endpoint: '/test', latencyMs: 10 });
+    stats.recordRequest({ success: true, model: 'auto', endpoint: '/test', latencyMs: 10 });
+    expect(stats.recentErrorRate).toBe(0.5);
+  });
 });

@@ -51,4 +51,13 @@ describe('RodiumAILogger', () => {
     expect(output.httpStatus).toBe(200);
     expect(output.model).toBe('auto');
   });
+
+  it('falls back to warning level when env invalid', () => {
+    const prev = process.env.RODIUMAI_LOG_LEVEL;
+    process.env.RODIUMAI_LOG_LEVEL = 'invalid';
+    const logger = new RodiumAILogger();
+    logger.warning('hello');
+    expect(stderrSpy).toHaveBeenCalled();
+    process.env.RODIUMAI_LOG_LEVEL = prev;
+  });
 });

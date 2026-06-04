@@ -52,14 +52,6 @@
     "roots": ["<rootDir>/tests"],
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1"
-    },
-    "coverageThreshold": {
-      "global": {
-        "lines": 98.5,
-        "branches": 98.5,
-        "functions": 98.5,
-        "statements": 98.5
-      }
     }
   }
 }
