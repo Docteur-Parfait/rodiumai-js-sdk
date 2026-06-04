@@ -25,10 +25,10 @@ jobs:
         run: npm install
 
       - name: Run unit tests
-        run: npm run test:unit -- --coverage
+        run: npm run test:unit
 
       - name: Run integration tests
-        run: npm run test:integration -- --coverage --coverageReporters=text
+        run: npm run test:integration
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
