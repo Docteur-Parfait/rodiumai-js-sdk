@@ -19,10 +19,10 @@ describe('Audio resource', () => {
     expect(res.text).toBe('hello world');
   });
 
-  it('parses speech response with content_type', async () => {
+  it('parses speech binary response', async () => {
     nock(API_BASE)
       .post('/v1/audio/speech')
-      .reply(200, { content: 'ZmFrZQ==', content_type: 'audio/wav' });
+      .reply(200, Buffer.from('fake-audio'), { 'content-type': 'audio/wav' });
 
     const audio = new Audio(new AsyncHTTPClient({ apiKey: 'rdk-test', baseUrl: `${API_BASE}/v1`, maxRetries: 0 }));
     const res = await audio.speech.create({ input: 'hello' });

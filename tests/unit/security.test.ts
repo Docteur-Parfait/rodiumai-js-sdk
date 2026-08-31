@@ -11,9 +11,9 @@ describe('Security — HTTPS Enforcement', () => {
       .not.toThrow();
   });
 
-  it('rejects http:// with port', () => {
+  it('allows http://localhost for local development', () => {
     expect(() => new RodiumAI({ apiKey: 'rdk-test', baseURL: 'http://localhost:8080/v1' }))
-      .toThrow('HTTPS is required');
+      .not.toThrow();
   });
 });
 

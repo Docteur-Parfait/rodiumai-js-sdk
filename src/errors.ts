@@ -60,7 +60,7 @@ export class InsufficientRODIError extends RodiumAIError {
     super({
       message: 'You do not have enough RODI credits to complete this request.',
       code: 402,
-      errorCode: 'insufficient_rodi',
+      errorCode: 'insufficient_balance',
       requestId: requestId ?? null,
       fixSuggestion: 'Top up your wallet at https://rodiumai.io/wallet',
       docsUrl: 'https://docs.rodiumai.io/billing',
@@ -205,5 +205,7 @@ export function mapHttpStatus(status: number, requestId?: string): RodiumAIError
   if (Cls === RateLimitError) {
     return new Cls(requestId);
   }
-  return new (Cls as any)(requestId);
+  return new (Cls as new (requestId?: string) => RodiumAIError)(requestId);
 }
+
+export { InsufficientRODIError as InsufficientBalanceError };

@@ -26,7 +26,7 @@ describe('Audio Integration', () => {
   it('POST /v1/audio/speech returns audio', async () => {
     nock(API_BASE)
       .post('/v1/audio/speech')
-      .reply(200, { content: 'fake-audio-bytes', content_type: 'audio/mpeg' });
+      .reply(200, Buffer.from('fake-audio-bytes'), { 'content-type': 'audio/mpeg' });
 
     const speech: any = await client.audio.speech.create({
       model: 'auto',
