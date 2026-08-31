@@ -26,10 +26,11 @@ Official TypeScript/JavaScript SDK for the [Rodium AI](https://www.rodiumai.io) 
 - [Three ways to call the API](#three-ways-to-call-the-api)
 - [Quick start](#quick-start)
 - [Chat completions](#chat-completions)
-- [Streaming (SSE)](#streaming-sse)
-- [Models](#models)
+- [Streaming & real-time chat (SSE)](#streaming--real-time-chat-sse)
+- [Models catalogue](#models-catalogue)
 - [Embeddings](#embeddings)
-- [Images & videos](#images--videos)
+- [Images (`POST /v1/images/generations`)](#images-post-v1imagesgenerations)
+- [Videos (`POST /v1/videos/generations`)](#videos-post-v1videosgenerations)
 - [Audio](#audio)
 - [Anthropic Messages](#anthropic-messages)
 - [Wallet & pricing](#wallet--pricing)
@@ -119,35 +120,113 @@ const fluent = await client.model('openai/gpt-4o').temperature(0.7).chat('Hello!
 
 ## Chat completions
 
-Aligned with [docs/api/chat-completions](https://www.rodiumai.io/docs/api/chat-completions).
+`POST /v1/chat/completions` — OpenAI-compatible chat. All extra OpenAI fields are **pass-through** (`tools`, `response_format`, `seed`, …).
+
+### Parameters
+
+| Parameter | Required | Type | Default | Description |
+|-----------|----------|------|---------|-------------|
+| `model` | yes | string | `openai/gpt-4o` | Catalogue slug or smart alias |
+| `messages` | yes | array | — | `{role, content}` — string or multimodal blocks |
+| `max_tokens` | no | integer | model max | Max output tokens |
+| `temperature` | no | float | — | 0–2 |
+| `top_p` | no | float | — | 0–1 |
+| `stream` | no | boolean | `false` | Enable SSE |
+| `stop` | no | string \| array | — | Stop sequences |
+| `tools` | no | array | — | Function tools |
+| `tool_choice` | no | string \| object | — | `auto`, `none`, `required` |
+| `response_format` | no | object | — | JSON mode / JSON schema |
+| `session_id` | no | string | — | Custom models memory |
+
+### Basic usage
 
 ```typescript
-// Shorthand string
 const response = await client.chat('What is Rodium AI?');
 
-// Full message list
 const response2 = await client.chat(
   [
     { role: 'system', content: 'You are a helpful assistant.' },
     { role: 'user', content: 'Explain Laravel Service Providers.' },
   ],
-  { maxTokens: 500, temperature: 0.5 },
+  { max_tokens: 500, temperature: 0.5 },
 );
+```
 
-// Passthrough (tools, responseFormat, stop, …)
-const response3 = await client.chat(messages, { tools: [...], responseFormat: { type: 'json_object' } });
+### Multi-turn conversation
+
+```typescript
+const history: Array<{ role: string; content: string }> = [
+  { role: 'user', content: 'My name is Amina.' },
+  { role: 'assistant', content: 'Nice to meet you, Amina!' },
+  { role: 'user', content: 'What is my name?' },
+];
+const response = await client.chat(history);
+```
+
+### Multimodal — vision
+
+```typescript
+import fs from 'node:fs';
+
+const b64 = fs.readFileSync('invoice.png').toString('base64');
+
+const response = await client.chat(
+  [{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'Extract the total from this invoice.' },
+      { type: 'image_url', image_url: { url: `data:image/png;base64,${b64}` } },
+    ],
+  }],
+  { model: 'openai/gpt-4o' },
+);
+```
+
+HTTP(S) URLs work in **chat** vision (not in image/video generation).
+
+### Function calling
+
+```typescript
+const response = await client.chat(
+  [{ role: 'user', content: "What's the weather in Lomé?" }],
+  {
+    tools: [{
+      type: 'function',
+      function: {
+        name: 'get_weather',
+        parameters: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        },
+      },
+    }],
+    tool_choice: 'auto',
+  },
+);
+```
+
+### Structured JSON
+
+```typescript
+const response = await client.chat('List 3 capitals as JSON.', {
+  response_format: { type: 'json_object' },
+});
 ```
 
 ### Smart routing
 
+| Alias | Behavior |
+|-------|----------|
+| `rodiumai/smart` | LLM router + `routing` metadata |
+| `rodium/fast`, `rodium/pro`, … | Rule-based profiles |
+
 ```typescript
 const response = await client.model('rodiumai/smart').chat('Summarize RODI credits.');
-console.log(response.routing); // resolved model metadata from gateway
+console.log(response.routing, response.cost_rodi);
 ```
 
-See [Smart routing guide](https://www.rodiumai.io/docs/guides/smart).
-
-### OpenAI nested (drop-in)
+### OpenAI nested
 
 ```typescript
 const response = await client.chat.completions.create({
@@ -156,7 +235,11 @@ const response = await client.chat.completions.create({
 });
 ```
 
-## Streaming (SSE)
+---
+
+## Streaming & real-time chat (SSE)
+
+**No WebSocket** — real-time uses **SSE** (`stream: true`).
 
 ```typescript
 for await (const delta of client.stream('Tell a short story about Lagos.')) {
@@ -164,115 +247,236 @@ for await (const delta of client.stream('Tell a short story about Lagos.')) {
 }
 ```
 
-Nested equivalent:
+### Real-time chat loop (UI pattern)
 
 ```typescript
-const stream = await client.chat.completions.create({
-  model: 'openai/gpt-4o',
-  messages: [{ role: 'user', content: 'Hello!' }],
-  stream: true,
-});
+const history: Array<{ role: string; content: string }> = [];
 
-for await (const chunk of stream) {
-  const content = chunk.choices[0]?.delta?.content;
-  if (content) process.stdout.write(content);
+async function ask(userText: string) {
+  history.push({ role: 'user', content: userText });
+  const parts: string[] = [];
+  for await (const delta of client.stream(history, { model: 'openai/gpt-4o' })) {
+    parts.push(delta);
+    process.stdout.write(delta); // stream to UI
+  }
+  const assistant = parts.join('');
+  history.push({ role: 'assistant', content: assistant });
+  return assistant;
 }
+
+await ask('Bonjour!');
+await ask('Rappelle-moi ma première question.');
 ```
 
-## Models
+### SSE format
+
+```
+data: {"choices":[{"delta":{"content":"Hello"}}]}
+data: [DONE]
+```
+
+Use `streamTimeout: 600_000` (default) for long streams.
+
+---
+
+## Models catalogue
 
 ```typescript
-const catalogue = await client.models();                    // GET /v1/models
-const info = await client.modelInfo('openai/gpt-4o');       // GET /v1/models/{id}
-const coding = await client.codingModels();                 // GET /v1/models/coding
-
-// Nested
-const list = await client.models.list();
-const detail = await client.models.retrieve('openai/gpt-4o');
+const catalogue = await client.models();
+const info = await client.modelInfo('openai/gpt-4o');
+const coding = await client.codingModels();
 ```
 
-Use catalogue IDs (e.g. `openai/gpt-4o`, `anthropic/claude-sonnet-4-6`) — not legacy `auto`.
+Models include `rodiumai_pricing`, `rodiumai_capabilities` (modalities, streaming, tools, vision), and `rodiumai_kind` for smart aliases.
+
+---
 
 ## Embeddings
 
+`POST /v1/embeddings`
+
 ```typescript
 const result = await client.embeddings('Hello world', { model: 'openai/text-embedding-3-small' });
-const vector = result.data[0].embedding;
-
-// Batch
-const batch = await client.embeddings(['Hello', 'World'], { model: 'openai/text-embedding-3-small' });
+const batch = await client.embeddings(['A', 'B'], { model: 'openai/text-embedding-3-small', dimensions: 768 });
 ```
 
-## Images & videos
+---
+
+## Images (`POST /v1/images/generations`)
+
+| Parameter | Required | Notes |
+|-----------|----------|-------|
+| `model`, `prompt` | yes | |
+| `n` | no | 1–10 (Imagen max 4) |
+| `size` | no | `1024x1024`, `1536x1024`, … |
+| `quality` | no | Affects RODI quote |
+| `aspect_ratio` | no | Gemini native |
+| `image`, `images` | no | i2i — up to 14 refs (Gemini) |
+| `mask` | no | OpenAI inpainting |
+
+**No remote HTTP fetch** for reference images — use base64, data URL, or `gs://` (Gemini).
+
+### Text-to-image
 
 ```typescript
 const image = await client.images({
   model: 'openai/gpt-image-1',
-  prompt: 'A sunset over Lomé',
+  prompt: 'A red fox in the snow',
   size: '1024x1024',
+  quality: 'medium',
 });
-console.log(image.data[0].url);
-
-const video = await client.videos({
-  model: 'google/veo-3.1-generate-preview',
-  prompt: 'Ocean waves at golden hour',
-  durationSeconds: 8,
-  timeout: 600_000,
-});
-console.log(video.data[0].url);
+const b64 = image.data[0].b64_json;
 ```
 
-## Audio
+### Image-to-image
 
 ```typescript
 import fs from 'node:fs';
 
-// Transcription (multipart upload — path, Blob, File, or Buffer)
+const ref = fs.readFileSync('product.png').toString('base64');
+
+const image = await client.images({
+  model: 'google/gemini-3.1-flash-image',
+  prompt: 'Soft white studio background',
+  image: { b64_json: ref, mime_type: 'image/png' },
+});
+```
+
+### Inpainting
+
+```typescript
+const image = await client.images({
+  model: 'openai/gpt-image-1',
+  prompt: 'Replace sky with sunset',
+  image: { b64_json: '<SOURCE>' },
+  mask: { b64_json: '<MASK>' },
+});
+```
+
+---
+
+## Videos (`POST /v1/videos/generations`)
+
+Always set `timeout: 600_000` — jobs can take minutes.
+
+| Parameter | Required | Notes |
+|-----------|----------|-------|
+| `model`, `prompt` | yes | |
+| `duration_seconds` | no | Default 8; Sora snaps to 4/8/12 |
+| `aspect_ratio`, `size` | no | Sora layout |
+| `image` | no | Start frame (image→video) |
+| `last_frame` | no | End frame (Veo interpolation) |
+| `resolution`, `resize_mode` | no | Veo only |
+
+### Text-to-video
+
+```typescript
+const video = await client.videos({
+  model: 'google/veo-3.1-generate-preview',
+  prompt: 'Ocean waves at golden hour',
+  duration_seconds: 8,
+  timeout: 600_000,
+});
+```
+
+### Image-to-video
+
+```typescript
+import fs from 'node:fs';
+
+const frame = fs.readFileSync('storyboard.png').toString('base64');
+
+const video = await client.videos({
+  model: 'google/veo-3.1-generate-preview',
+  prompt: 'Subtle pulse animation',
+  duration_seconds: 8,
+  image: { b64_json: frame, mime_type: 'image/png' },
+  timeout: 600_000,
+});
+```
+
+### Start + end frame (Veo)
+
+```typescript
+const video = await client.videos({
+  model: 'google/veo-3.1-generate-preview',
+  prompt: 'Smooth morph',
+  image: { b64_json: '<START>' },
+  last_frame: { b64_json: '<END>' },
+  timeout: 600_000,
+});
+```
+
+Response: `{ data: [{ url, b64_json, mime_type: 'video/mp4', duration_seconds }] }`.
+
+---
+
+## Audio
+
+### Transcriptions — multipart
+
+| Parameter | Required | Notes |
+|-----------|----------|-------|
+| `file` | yes | Path, Buffer, Blob, File |
+| `model` | yes | |
+| `language` | no | ISO-639-1 |
+| `prompt` | no | Spelling/style hint |
+| `response_format` | no | `json`, `text`, `verbose_json` |
+
+```typescript
 const transcript = await client.transcribe('recording.mp3', {
   model: 'google/gemini-2.5-flash',
   language: 'fr',
 });
-console.log(transcript.text);
-
-// Text-to-speech (returns ArrayBuffer)
-const audioBytes = await client.speech({
-  model: 'openai/tts-1',
-  input: 'Hello from RodiumAI',
-  voice: 'alloy',
-});
-fs.writeFileSync('speech.mp3', audioBytes);
 ```
 
-Nested:
+### Speech — binary response
+
+| Parameter | Required | Notes |
+|-----------|----------|-------|
+| `model`, `input` | yes | |
+| `voice` | no | OpenAI: alloy, echo, fable, onyx, nova, shimmer |
+| `response_format` | no | mp3, opus, wav, pcm |
+| `speed` | no | 0.25–4.0 |
+| `instructions` | no | Style hint |
 
 ```typescript
-const transcript = await client.audio.transcriptions.create({ model: '...', file: blob });
-const speech = await client.audio.speech.create({ model: '...', input: 'Hello', voice: 'alloy' });
+import fs from 'node:fs';
+
+const audio = await client.speech({
+  model: 'openai/tts-1',
+  input: 'Hello from RodiumAI',
+  voice: 'nova',
+  response_format: 'mp3',
+});
+fs.writeFileSync('speech.mp3', Buffer.from(audio));
 ```
+
+---
 
 ## Anthropic Messages
 
-Drop-in for [POST /v1/messages](https://www.rodiumai.io/docs/api/messages):
+`POST /v1/messages`
 
 ```typescript
 const result = await client.messages({
   model: 'anthropic/claude-sonnet-4-6',
-  maxTokens: 1024,
+  max_tokens: 1024,
+  system: 'You are concise.',
   messages: [{ role: 'user', content: 'Explain RODI credits.' }],
 });
-console.log(result);
 ```
+
+Streaming: pass `stream: true` — Anthropic SSE events (`content_block_delta`, …).
+
+---
 
 ## Wallet & pricing
 
-RodiumAI extensions:
-
 ```typescript
 const wallet = await client.wallet();
-console.log(wallet);
-
-const pricing = await client.pricing();
-const pricingModel = await client.pricing('openai/gpt-4o');
+const allPricing = await client.pricing();
+const oneModel = await client.pricing('openai/gpt-4o');
 ```
 
 ## Error handling
