@@ -41,11 +41,13 @@ export class Embeddings {
       timeout,
     });
 
-    const embeddings: EmbeddingObject[] = ((data.data ?? []) as Record<string, unknown>[]).map((item) => ({
-      object: (item.object as string) ?? 'embedding',
-      index: (item.index as number) ?? 0,
-      embedding: (item.embedding as number[]) ?? [],
-    }));
+    const embeddings: EmbeddingObject[] = ((data.data ?? []) as Record<string, unknown>[]).map(
+      (item) => ({
+        object: (item.object as string) ?? 'embedding',
+        index: (item.index as number) ?? 0,
+        embedding: (item.embedding as number[]) ?? [],
+      })
+    );
 
     const usageData = data.usage as Record<string, number> | undefined;
     const usage: EmbeddingUsage | undefined = usageData

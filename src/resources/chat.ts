@@ -68,7 +68,17 @@ export class Completions {
       throw new Error('messages must not be empty');
     }
 
-    const { stream, timeout, model = Completions.DEFAULT_MODEL, messages, temperature, max_tokens, top_p, stop, ...rest } = opts;
+    const {
+      stream,
+      timeout,
+      model = Completions.DEFAULT_MODEL,
+      messages,
+      temperature,
+      max_tokens,
+      top_p,
+      stop,
+      ...rest
+    } = opts;
 
     const body: Record<string, unknown> = {
       model,

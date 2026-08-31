@@ -583,10 +583,19 @@ Require `rodiumai@^0.3` in your dependencies.
 ```bash
 git clone https://github.com/Docteur-Parfait/rodiumai-js-sdk.git
 cd rodiumai-js-sdk
-npm install
-npm test
-npm run build
+npm ci
+
+# Local CI (lint + typecheck + format + audit + unit tests) — same checks as GitHub Actions
+npm run ci
+
+# Full CI (+ integration tests + build)
+npm run ci:full
+
+# Or on Windows:
+# pwsh scripts/ci.ps1
 ```
+
+Individual checks: `npm run lint`, `npm run typecheck`, `npm run format`, `npm run audit`.
 
 ## License
 

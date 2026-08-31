@@ -23,7 +23,13 @@ export class Generations {
     timeout?: number;
     [key: string]: unknown;
   }): Promise<VideoResponse> {
-    const { timeout = 600_000, model = Generations.DEFAULT_MODEL, prompt, duration_seconds, ...rest } = opts;
+    const {
+      timeout = 600_000,
+      model = Generations.DEFAULT_MODEL,
+      prompt,
+      duration_seconds,
+      ...rest
+    } = opts;
     const body: Record<string, unknown> = { model, prompt, ...rest };
     if (duration_seconds !== undefined) body.duration_seconds = duration_seconds;
 
@@ -52,7 +58,11 @@ export type VideoResource = {
   generations: Generations;
 };
 
-export function createVideoResource(http: AsyncHTTPClient, resolveModel: () => string, defaultTimeout: number): VideoResource {
+export function createVideoResource(
+  http: AsyncHTTPClient,
+  resolveModel: () => string,
+  defaultTimeout: number
+): VideoResource {
   const generations = new Generations(http);
   const fn = async (opts: Record<string, unknown>) =>
     generations.create({

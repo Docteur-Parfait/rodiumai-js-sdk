@@ -59,9 +59,12 @@ export type ImagesResource = Images & {
   generate: Images['generate'];
 };
 
-export function createImagesResource(http: AsyncHTTPClient, resolveModel: () => string): ImagesResource {
+export function createImagesResource(
+  http: AsyncHTTPClient,
+  resolveModel: () => string
+): ImagesResource {
   const images = new Images(http);
-    const fn = async (options: Record<string, unknown> & { prompt: string }) => {
+  const fn = async (options: Record<string, unknown> & { prompt: string }) => {
     const { model, timeout, prompt, ...rest } = options;
     return images.generate({
       model: (model as string) ?? resolveModel(),

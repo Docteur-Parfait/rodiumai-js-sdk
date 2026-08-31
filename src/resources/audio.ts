@@ -27,7 +27,11 @@ export class Transcriptions {
     timeout?: number;
     [key: string]: unknown;
   }): Promise<Transcription> {
-    const formFields: Record<string, string | undefined> = { model, language, ...rest as Record<string, string> };
+    const formFields: Record<string, string | undefined> = {
+      model,
+      language,
+      ...(rest as Record<string, string>),
+    };
 
     const { data } = await this.http.request({
       method: 'POST',

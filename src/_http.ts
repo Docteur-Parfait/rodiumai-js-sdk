@@ -28,7 +28,7 @@ function extractBackendError(data: unknown): { message: string | null; code: str
     const obj = err as Record<string, unknown>;
     return {
       message: (obj.message as string) ?? null,
-      code: ((obj.code as string) ?? (obj.type as string)) ?? null,
+      code: (obj.code as string) ?? (obj.type as string) ?? null,
     };
   }
   if (typeof err === 'string') {
@@ -152,7 +152,7 @@ export class AsyncHTTPClient {
 
   async request(opts: RequestOptions): Promise<RequestResult> {
     const url = this.buildUrl(opts.path, opts.params);
-    let headers = this.getHeaders(opts.extraHeaders);
+    const headers = this.getHeaders(opts.extraHeaders);
     const rid = this.requestId();
     let retryCount = 0;
     const effectiveTimeout = opts.timeout ?? this.timeout;
@@ -267,9 +267,8 @@ export class AsyncHTTPClient {
       }
 
       const text = await response.text();
-      const data = text && response.headers.get('content-type')?.includes('json')
-        ? JSON.parse(text)
-        : {};
+      const data =
+        text && response.headers.get('content-type')?.includes('json') ? JSON.parse(text) : {};
       const rid = response.headers.get('X-Request-ID') ?? this.requestId();
       throw this.mapResponseError(response.status, data, rid, response.headers);
     } catch (err) {

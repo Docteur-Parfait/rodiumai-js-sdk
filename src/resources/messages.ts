@@ -3,7 +3,9 @@ import { AsyncHTTPClient } from '../_http.js';
 export class Messages {
   constructor(private http: AsyncHTTPClient) {}
 
-  async create(opts: Record<string, unknown> & { timeout?: number }): Promise<Record<string, unknown>> {
+  async create(
+    opts: Record<string, unknown> & { timeout?: number }
+  ): Promise<Record<string, unknown>> {
     const { timeout, anthropic_version = '2023-06-01', ...body } = opts;
     const { data } = await this.http.request({
       method: 'POST',

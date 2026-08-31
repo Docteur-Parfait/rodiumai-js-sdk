@@ -62,9 +62,7 @@ export class RodiumAI {
 
   constructor(opts: RodiumAIOptions = {}) {
     const resolvedKey =
-      opts.apiKey ??
-      (typeof process !== 'undefined' ? process.env.RODIUMAI_API_KEY : '') ??
-      '';
+      opts.apiKey ?? (typeof process !== 'undefined' ? process.env.RODIUMAI_API_KEY : '') ?? '';
 
     if (!resolvedKey || !resolvedKey.trim()) {
       throw new InvalidAPIKeyError();
@@ -192,7 +190,10 @@ export class RodiumAI {
     }
   }
 
-  async modelInfo(modelId: string, options: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+  async modelInfo(
+    modelId: string,
+    options: Record<string, unknown> = {}
+  ): Promise<Record<string, unknown>> {
     return this.models.retrieve(modelId, options.timeout as number | undefined);
   }
 
@@ -237,14 +238,18 @@ export class RodiumAI {
     return this._extensions.wallet(options.timeout as number | undefined);
   }
 
-  async pricing(model?: string, options: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+  async pricing(
+    model?: string,
+    options: Record<string, unknown> = {}
+  ): Promise<Record<string, unknown>> {
     return this._extensions.pricing(model, options.timeout as number | undefined);
   }
 
   private buildMessages(
     messages: string | Array<{ role: string; content: string | unknown }>
   ): Array<{ role: string; content: string | unknown }> {
-    const built = typeof messages === 'string' ? [{ role: 'user', content: messages }] : [...messages];
+    const built =
+      typeof messages === 'string' ? [{ role: 'user', content: messages }] : [...messages];
     if (this.pendingSystemPrompt) {
       return [{ role: 'system', content: this.pendingSystemPrompt }, ...built];
     }
